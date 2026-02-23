@@ -10,5 +10,6 @@ package-lock.json
 **/*.map
 *.png
 !icons/**
+screenshots/**
 .gitignore
 .env

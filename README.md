@@ -6,6 +6,8 @@ Keep a `.context/` folder that maps your codebase for AI assistants. Modules des
 
 Works with Claude Code, Cursor, Copilot, Windsurf, and any AI that can read/write files.
 
+<img src="https://raw.githubusercontent.com/joeprinciples/AI-Context-Manager/main/screenshots/1.png" alt="Context Map panel" width="650" />
+
 ## How it works
 
 1. **Install** — optionally adds context management instructions to your CLAUDE.md
