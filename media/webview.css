@@ -71,11 +71,6 @@ body {
 /* Overview Section */
 .overview-section {
   padding: 10px 12px;
-  cursor: pointer;
-}
-
-.overview-section:hover {
-  background: var(--vscode-list-hoverBackground);
 }
 
 .overview-title {
@@ -85,7 +80,28 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.overview-link {
+  font-size: 10px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.overview-link:hover {
+  text-decoration: underline;
+  opacity: 1;
+  color: var(--vscode-textLink-foreground);
+}
+
+.overview-description {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 6px;
+  line-height: 1.4;
 }
 
 .overview-heading {
@@ -96,10 +112,6 @@ body {
   letter-spacing: 0.5px;
   margin-top: 6px;
   margin-bottom: 2px;
-}
-
-.overview-items {
-  padding-left: 4px;
 }
 
 .overview-item {
@@ -197,6 +209,16 @@ body {
   flex-shrink: 0;
 }
 
+.tree-file-description {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  padding: 0 12px 3px 70px;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .tree-file-dir {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 10px;
@@ -215,6 +237,10 @@ body {
 
 .staleness-stale {
   color: var(--vscode-charts-yellow, #cca700);
+}
+
+.staleness-undocumented {
+  color: var(--vscode-charts-blue, #2196f3);
 }
 
 .staleness-indicator {
@@ -250,6 +276,7 @@ body {
   color: var(--vscode-descriptionForeground);
   opacity: 0.5;
   margin-left: auto;
+  padding-left: 12px;
   flex-shrink: 0;
   font-family: var(--vscode-editor-font-family, monospace);
 }

@@ -29,12 +29,14 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // Parse _overview.md into a simple display: title + bullet points
+  // Parse _overview.md into a compact display: title, link, description, tech stack
   function renderOverviewSection(fragment) {
     if (!overviewContent) return;
 
     const lines = overviewContent.split('\n');
     let title = '';
+    let description = '';
+    let currentSection = null;
     const sections = [];
 
     for (const line of lines) {
@@ -42,44 +44,52 @@
       if (!title && trimmed.startsWith('# ')) {
         title = trimmed.slice(2).trim();
       } else if (trimmed.startsWith('## ')) {
-        sections.push({ heading: trimmed.slice(3).trim(), items: [] });
-      } else if (trimmed.startsWith('- ') && sections.length > 0) {
-        sections[sections.length - 1].items.push(trimmed.slice(2).trim());
+        currentSection = { heading: trimmed.slice(3).trim(), items: [] };
+        sections.push(currentSection);
+      } else if (!currentSection && !description && trimmed && !trimmed.startsWith('#')) {
+        // Text between title and first ## heading = description
+        description = trimmed;
+      } else if (trimmed.startsWith('- ') && currentSection) {
+        currentSection.items.push(trimmed.slice(2).trim());
       }
     }
 
     if (!title && !sections.length) return;
 
-    // Overview header
-    const overviewRow = document.createElement('div');
-    overviewRow.className = 'overview-section';
+    const el = document.createElement('div');
+    el.className = 'overview-section';
 
     let html = '';
     if (title) {
       html += `<div class="overview-title">${icons.book} ${escapeHtml(title)}</div>`;
     }
+    html += `<span class="overview-link" title="Open _overview.md">_overview.md</span>`;
 
-    for (const section of sections) {
-      if (section.heading === 'Modules') continue; // Skip — that's the tree below
-      if (section.items.length === 0) continue;
-      html += `<div class="overview-heading">${escapeHtml(section.heading)}</div>`;
-      html += `<div class="overview-items">`;
-      for (const item of section.items) {
-        // Strip [AI: ...] placeholders
-        if (/^\[AI:/.test(item)) continue;
-        html += `<div class="overview-item">${escapeHtml(item)}</div>`;
-      }
-      html += `</div>`;
+    if (description && !/^\[AI:/.test(description)) {
+      html += `<div class="overview-description">${escapeHtml(description)}</div>`;
     }
 
-    overviewRow.innerHTML = html;
+    // Only Tech Stack — compact inline, skip Modules and Key Decisions
+    for (const section of sections) {
+      if (section.heading === 'Modules' || section.heading === 'Key Decisions') continue;
+      const items = section.items.filter(i => !/^\[AI:/.test(i));
+      if (items.length === 0) continue;
+      html += `<div class="overview-heading">${escapeHtml(section.heading)}</div>`;
+      html += `<div class="overview-item">${items.map(i => escapeHtml(i)).join(' \u00b7 ')}</div>`;
+    }
 
-    // Click to open _overview.md
-    overviewRow.addEventListener('click', () => {
-      vscode.postMessage({ type: 'openOverview' });
-    });
+    el.innerHTML = html;
 
-    fragment.appendChild(overviewRow);
+    // Only the link opens the file
+    const link = el.querySelector('.overview-link');
+    if (link) {
+      link.addEventListener('click', (e) => {
+        e.stopPropagation();
+        vscode.postMessage({ type: 'openOverview' });
+      });
+    }
+
+    fragment.appendChild(el);
   }
 
   function renderTree() {
@@ -112,9 +122,14 @@
         const info = stalenessMap[m.filePath];
         return info && info.isStale;
       }).length;
+      const undocInCat = category.modules.filter(m => {
+        const info = stalenessMap[m.filePath];
+        return info && info.isUndocumented;
+      }).length;
 
       let catStatus = '';
-      if (staleInCat > 0) { catStatus = ` \u00b7 ${staleInCat} stale`; }
+      if (undocInCat > 0) { catStatus = ` \u00b7 ${undocInCat} undocumented`; }
+      else if (staleInCat > 0) { catStatus = ` \u00b7 ${staleInCat} stale`; }
 
       // Category row
       const catRow = document.createElement('div');
@@ -142,6 +157,7 @@
         const modExpanded = expandedModules.has(mod.filePath);
         const info = stalenessMap[mod.filePath];
         const isStale = info && info.isStale;
+        const isUndocumented = info && info.isUndocumented;
         const staleFiles = (info && info.staleFiles) || [];
         const fileCount = mod.data.files.length;
 
@@ -162,7 +178,9 @@
         }
 
         let statusIndicator = '';
-        if (isStale) {
+        if (isUndocumented) {
+          statusIndicator = `<span class="staleness-indicator staleness-undocumented" title="Has [AI: ...] placeholder text — needs documentation">${icons.fileText}</span>`;
+        } else if (isStale) {
           statusIndicator = `<span class="staleness-indicator staleness-stale" title="${staleFiles.length} file(s) changed since last update">${icons.alertTriangle}</span>`;
         } else {
           statusIndicator = `<span class="staleness-indicator staleness-fresh" title="Up to date">${icons.checkCircle}</span>`;
@@ -202,8 +220,8 @@
 
         fragment.appendChild(modRow);
 
-        // Module description (only show if it's real content, not a placeholder)
-        if (modExpanded && mod.data.description && !/^\[AI:/.test(mod.data.description)) {
+        // Module description — always visible as a subtitle
+        if (mod.data.description && !/^\[AI:/.test(mod.data.description)) {
           const descRow = document.createElement('div');
           descRow.className = 'module-description';
           descRow.textContent = mod.data.description;
@@ -236,6 +254,15 @@
             showFileContextMenu(e.clientX, e.clientY, mod.filePath, file.path);
           });
           fragment.appendChild(fileRow);
+
+          // File description — truncated subtitle
+          if (file.description && !/^\[AI:/.test(file.description) && !/^\w+ \(\w+\)$/.test(file.description)) {
+            const fileDesc = document.createElement('div');
+            fileDesc.className = 'tree-file-description';
+            fileDesc.textContent = file.description;
+            fileDesc.title = file.description;
+            fragment.appendChild(fileDesc);
+          }
         }
       }
     }
@@ -322,6 +349,7 @@
     const totalModules = categories.reduce((sum, c) => sum + c.modules.length, 0);
     const totalCategories = categories.length;
     const staleCount = Object.values(stalenessMap).filter(s => s.isStale).length;
+    const undocCount = Object.values(stalenessMap).filter(s => s.isUndocumented).length;
     const totalFiles = categories.reduce((sum, c) =>
       sum + c.modules.reduce((mSum, m) => mSum + (m.data.files ? m.data.files.length : 0), 0), 0);
 
@@ -329,9 +357,13 @@
     parts.push(`${totalModules} module${totalModules !== 1 ? 's' : ''}`);
     parts.push(`${totalCategories} categor${totalCategories !== 1 ? 'ies' : 'y'}`);
     parts.push(`${totalFiles} file${totalFiles !== 1 ? 's' : ''}`);
+    if (undocCount > 0) {
+      parts.push(`${undocCount} undocumented`);
+    }
     if (staleCount > 0) {
       parts.push(`${staleCount} stale`);
-    } else if (totalModules > 0) {
+    }
+    if (undocCount === 0 && staleCount === 0 && totalModules > 0) {
       parts.push('all fresh');
     }
 

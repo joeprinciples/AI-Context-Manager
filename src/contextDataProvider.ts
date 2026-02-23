@@ -10,7 +10,7 @@ const OVERVIEW_FILENAME = '_overview.md';
 // Regex to detect auto-generated placeholder text in module bodies and descriptions
 export const PLACEHOLDER_PATTERN = /\[AI: .+?\]/;
 
-const DEFAULT_SOURCE_EXTENSIONS = [
+export const DEFAULT_SOURCE_EXTENSIONS = [
   '.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte',
   '.py', '.rb', '.go', '.rs', '.java', '.kt',
   '.css', '.scss', '.less', '.sass',
@@ -20,7 +20,7 @@ const DEFAULT_SOURCE_EXTENSIONS = [
   '.md', '.mdx',
 ];
 
-const DEFAULT_CATEGORY_MAP: Record<string, string> = {
+export const DEFAULT_CATEGORY_MAP: Record<string, string> = {
   // Frontend
   'components': 'frontend', 'pages': 'frontend', 'views': 'frontend',
   'hooks': 'frontend', 'styles': 'frontend', 'css': 'frontend',
@@ -297,20 +297,6 @@ export function removeModule(modulePath: string): boolean {
   }
 }
 
-// Adds a tracked file to a module
-export function addFileToModule(modulePath: string, trackedFile: TrackedFile): ModuleFile | null {
-  const module = parseModuleFile(modulePath);
-  if (module.parseError) { return null; }
-
-  // Don't add duplicates
-  if (module.data.files.some(f => f.path === trackedFile.path)) { return module; }
-
-  module.data.files.push(trackedFile);
-  module.data.lastUpdated = new Date().toISOString();
-  saveModuleFile(module);
-  return module;
-}
-
 // Removes a tracked file from a module
 export function removeFileFromModule(modulePath: string, filePath: string): ModuleFile | null {
   const module = parseModuleFile(modulePath);
@@ -333,6 +319,40 @@ export function touchModule(modulePath: string): ModuleFile | null {
   module.data.lastUpdated = new Date().toISOString();
   saveModuleFile(module);
   return module;
+}
+
+// Removes all module .md files, empty category dirs, and _overview.md
+// so a fresh re-scan can start clean
+export function removeAllModules(contextFolder: string): void {
+  if (!fs.existsSync(contextFolder)) { return; }
+
+  const entries = fs.readdirSync(contextFolder, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith('_') || entry.name.startsWith('.')) {
+      continue;
+    }
+
+    const categoryDir = path.join(contextFolder, entry.name);
+    // Delete all .md files in this category directory
+    const files = fs.readdirSync(categoryDir);
+    for (const file of files) {
+      if (file.endsWith('.md')) {
+        fs.unlinkSync(path.join(categoryDir, file));
+      }
+    }
+
+    // If directory is now empty, remove it
+    const remaining = fs.readdirSync(categoryDir);
+    if (remaining.length === 0) {
+      fs.rmdirSync(categoryDir);
+    }
+  }
+
+  // Delete _overview.md so it gets regenerated with the correct module index
+  const overviewPath = path.join(contextFolder, OVERVIEW_FILENAME);
+  if (fs.existsSync(overviewPath)) {
+    fs.unlinkSync(overviewPath);
+  }
 }
 
 // Creates the .context/ skeleton
@@ -389,13 +409,6 @@ export function loadOverviewFile(contextFolder: string): string | null {
   } catch {
     return null;
   }
-}
-
-// Checks if _overview.md still has placeholder content
-export function isOverviewUndocumented(contextFolder: string): boolean {
-  const content = loadOverviewFile(contextFolder);
-  if (!content) { return true; }
-  return PLACEHOLDER_PATTERN.test(content);
 }
 
 // Creates .claude/commands/ slash commands for Claude Code integration

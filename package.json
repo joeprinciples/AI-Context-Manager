@@ -2,7 +2,7 @@
   "name": "ai-context-manager",
   "displayName": "AI Context Manager",
   "description": "Maintain a .context/ folder that maps your codebase for AI assistants",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "FirstPrinciples",
   "license": "MIT WITH Commons-Clause",
   "repository": {

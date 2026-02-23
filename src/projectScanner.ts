@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { TrackedFile, ContextConfig } from './types';
+import { DEFAULT_CATEGORY_MAP, DEFAULT_SOURCE_EXTENSIONS } from './contextDataProvider';
 
 export interface ModuleProposal {
   name: string;
@@ -16,34 +17,6 @@ export interface CategoryProposal {
 export interface ScanResult {
   categories: CategoryProposal[];
 }
-
-// These are only used as fallbacks if config doesn't provide them
-const DEFAULT_CATEGORY_MAP: Record<string, string> = {
-  'components': 'frontend', 'pages': 'frontend', 'views': 'frontend',
-  'hooks': 'frontend', 'styles': 'frontend', 'css': 'frontend',
-  'scss': 'frontend', 'layouts': 'frontend', 'ui': 'frontend',
-  'widgets': 'frontend', 'screens': 'frontend', 'templates': 'frontend',
-  'api': 'backend', 'routes': 'backend', 'controllers': 'backend',
-  'middleware': 'backend', 'services': 'backend', 'handlers': 'backend',
-  'server': 'backend', 'endpoints': 'backend', 'graphql': 'backend',
-  'models': 'backend', 'database': 'backend', 'db': 'backend',
-  'migrations': 'backend', 'schema': 'backend', 'prisma': 'backend',
-  'types': 'shared', 'interfaces': 'shared', 'utils': 'shared',
-  'helpers': 'shared', 'lib': 'shared', 'shared': 'shared',
-  'common': 'shared', 'constants': 'shared', 'config': 'shared',
-  'assets': 'assets', 'images': 'assets', 'icons': 'assets',
-  'fonts': 'assets', 'public': 'assets', 'static': 'assets', 'media': 'assets',
-};
-
-const DEFAULT_SOURCE_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte',
-  '.py', '.rb', '.go', '.rs', '.java', '.kt',
-  '.css', '.scss', '.less', '.sass',
-  '.html', '.htm', '.ejs', '.hbs', '.pug',
-  '.json', '.yaml', '.yml', '.toml',
-  '.sql', '.graphql', '.gql',
-  '.md', '.mdx',
-]);
 
 function shouldExclude(name: string, excludePatterns: string[]): boolean {
   return excludePatterns.some(p => name === p || name.startsWith('.'));

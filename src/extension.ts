@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import {
   loadAllModules, parseModuleFile, watchContextFolder,
   groupByCategory, checkAllStaleness, initContextFolder,
-  loadConfig, addModule, removeModule, touchModule,
+  loadConfig, addModule, removeModule, removeAllModules, touchModule,
   removeFileFromModule, createOverviewFile, createClaudeCommands,
   loadOverviewFile
 } from './contextDataProvider';
@@ -210,11 +210,14 @@ async function runInitCommand(): Promise<void> {
 
   if (fs.existsSync(contextFolder)) {
     const choice = await vscode.window.showWarningMessage(
-      '.context/ folder already exists. Re-scan and add new modules?',
-      'Re-scan',
+      '.context/ folder already exists. Replace modules with a fresh scan?',
+      'Replace',
       'Cancel'
     );
-    if (choice !== 'Re-scan') { return; }
+    if (choice !== 'Replace') { return; }
+
+    // Clean up old modules, category dirs, and overview before re-scanning
+    removeAllModules(contextFolder);
   }
 
   // Load or create config
