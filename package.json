@@ -1,0 +1,75 @@
+{
+  "name": "ai-context-manager",
+  "displayName": "AI Context Manager",
+  "description": "Maintain a .context/ folder that maps your codebase for AI assistants",
+  "version": "0.1.0",
+  "publisher": "FirstPrinciples",
+  "license": "MIT WITH Commons-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joeprinciples/AI-Context-Manager.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "context",
+    "codebase",
+    "documentation",
+    "ai",
+    "claude"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "icon": "icons/icon.png",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiContextManager.toggle",
+        "title": "Toggle AI Context Manager"
+      },
+      {
+        "command": "aiContextManager.init",
+        "title": "AI Context Manager: Initialise .context/"
+      },
+      {
+        "command": "aiContextManager.refresh",
+        "title": "AI Context Manager: Refresh Staleness"
+      }
+    ],
+    "configuration": {
+      "title": "AI Context Manager",
+      "properties": {
+        "aiContextManager.contextFolder": {
+          "type": "string",
+          "default": ".context",
+          "description": "Name of the context folder in the workspace root"
+        },
+        "aiContextManager.autoInitPrompt": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prompt to initialise .context/ when opening a workspace without one"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "node esbuild.js && npx @vscode/vsce package --out builds/"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "jsonrepair": "^3.13.2"
+  }
+}
