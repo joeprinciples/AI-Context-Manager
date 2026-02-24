@@ -6,3 +6,4 @@ builds/
 .env
 .claude/
 .context/
+release.js

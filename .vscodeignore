@@ -13,3 +13,4 @@ package-lock.json
 screenshots/**
 .gitignore
 .env
+release.js

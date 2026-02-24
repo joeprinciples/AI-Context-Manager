@@ -1,6 +1,6 @@
 {
-  "name": "ai-context-manager",
-  "displayName": "AI Context Manager",
+  "name": "ai-codebase-context",
+  "displayName": "AI Context Docs",
   "description": "Maintain a .context/ folder that maps your codebase for AI assistants",
   "version": "0.1.1",
   "publisher": "FirstPrinciples",
@@ -61,7 +61,8 @@
   "scripts": {
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
-    "package": "node esbuild.js && npx @vscode/vsce package --out builds/"
+    "package": "node esbuild.js && npx @vscode/vsce package --out builds/",
+    "release": "node release.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
