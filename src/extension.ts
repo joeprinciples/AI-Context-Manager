@@ -274,15 +274,19 @@ async function runInitCommand(): Promise<void> {
 
 // --- CLAUDE.md auto-injection ---
 
+// Bump when the template changes; existing installs are offered a refresh
+const TEMPLATE_VERSION = 2;
+
 const CLAUDE_MD_INSTRUCTIONS = `${MARKER_START}
+<!-- ai-context-manager template v${TEMPLATE_VERSION} - managed by the AI Context Manager extension -->
 ## Context Management (RECOMMENDED)
 
 This project uses \`.context/\` for codebase documentation. **When asked to review, explore, or understand this project, start by reading \`.context/_overview.md\`.**
 
 ### Slash commands (Claude Code)
-- \`/project:context-create\` — populate all undocumented modules with real documentation
-- \`/project:context-review\` — review and update existing context for accuracy
-- \`/project:context-update\` — update context after recent code changes
+- \`/project:context-create\` - populate all undocumented modules with real documentation
+- \`/project:context-review\` - review and update existing context for accuracy
+- \`/project:context-update\` - update context after recent code changes
 
 ### First-time setup
 If \`.context/_config.json\` has \`"needsAiSetup": true\`, this is a fresh init:
@@ -304,7 +308,7 @@ If \`.context/_config.json\` has \`"needsAiSetup": true\`, this is a fresh init:
 5. Update \`.context/_overview.md\` if project structure changed significantly
 
 ### Writing guidelines
-- \`_overview.md\` is an INDEX, not documentation — keep it short
+- \`_overview.md\` is an INDEX, not documentation - keep it short
 - Module docs: a few concise lines per section, not essays
 - Format: what it does, key patterns, important decisions
 - File descriptions: one line each
@@ -334,13 +338,60 @@ function claudeMdHasMarkers(content: string): boolean {
   return content.includes(MARKER_START) && content.includes(MARKER_END);
 }
 
+// Template version embedded in the managed block; pre-versioning blocks count as v1
+function installedTemplateVersion(content: string): number {
+  const startIdx = content.indexOf(MARKER_START);
+  const endIdx = content.indexOf(MARKER_END);
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) { return 1; }
+  const block = content.slice(startIdx, endIdx);
+  const match = block.match(/ai-context-manager template v(\d+)/);
+  return match ? parseInt(match[1], 10) : 1;
+}
+
+const SKIPPED_TEMPLATE_VERSION_KEY = 'aiContextManager.skippedTemplateVersion';
+
+// Offer to refresh the managed block when the shipped template is newer
+function offerTemplateUpdate(context: vscode.ExtensionContext, content: string, claudePath: string): Thenable<void> {
+  const installed = installedTemplateVersion(content);
+  if (installed >= TEMPLATE_VERSION) { return Promise.resolve(); }
+  if (context.globalState.get<number>(SKIPPED_TEMPLATE_VERSION_KEY, 0) >= TEMPLATE_VERSION) { return Promise.resolve(); }
+
+  return vscode.window.showInformationMessage(
+    'AI Context Manager has updated .context/ instructions for CLAUDE.md (slash commands, first-time setup flow). Refresh your block? Any edits inside the block will be replaced.',
+    'Refresh',
+    'Keep mine'
+  ).then(choice => {
+    if (choice === 'Refresh') {
+      try {
+        // Re-check both markers; the file may have changed since the prompt
+        const current = fs.readFileSync(claudePath, 'utf-8');
+        const startIdx = current.indexOf(MARKER_START);
+        const endRaw = current.indexOf(MARKER_END);
+        if (startIdx === -1 || endRaw === -1 || endRaw < startIdx) { return; }
+        const endIdx = endRaw + MARKER_END.length;
+        const updated = current.slice(0, startIdx) + CLAUDE_MD_INSTRUCTIONS + current.slice(endIdx);
+        fs.writeFileSync(claudePath, updated, 'utf-8');
+        vscode.window.showInformationMessage('CLAUDE.md context instructions updated.');
+      } catch {
+        // CLAUDE.md vanished between read and write — nothing to do
+      }
+    } else if (choice === 'Keep mine') {
+      context.globalState.update(SKIPPED_TEMPLATE_VERSION_KEY, TEMPLATE_VERSION);
+    }
+  });
+}
+
 function injectClaudeMdInstructions(context: vscode.ExtensionContext, onComplete: () => void): void {
   // Already set up in a previous activation
   if (context.globalState.get(CLAUDE_MD_SETUP_KEY, false)) {
     const claudePath = getClaudeMdPath();
     try {
       const content = fs.readFileSync(claudePath, 'utf-8');
-      if (claudeMdHasMarkers(content)) { onComplete(); return; }
+      if (claudeMdHasMarkers(content)) {
+        // Run the prompts one at a time
+        offerTemplateUpdate(context, content, claudePath).then(() => onComplete());
+        return;
+      }
     } catch {
       // File doesn't exist — fall through to prompt
     }
@@ -357,7 +408,7 @@ function injectClaudeMdInstructions(context: vscode.ExtensionContext, onComplete
     fileExists = true;
     if (claudeMdHasMarkers(existingContent)) {
       context.globalState.update(CLAUDE_MD_SETUP_KEY, true);
-      onComplete();
+      offerTemplateUpdate(context, existingContent, claudePath).then(() => onComplete());
       return;
     }
   } catch {

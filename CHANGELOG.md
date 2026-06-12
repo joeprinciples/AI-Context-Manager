@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- **Fix:** A UTF-8 BOM no longer breaks parsing of module files or `_config.json` (PowerShell's `utf8` encoding writes one; affected files were reported as malformed, and a BOM'd config silently fell back to defaults). Files heal on next save.
+- **Fix:** Dotfiles are now always excluded from project scans, even when `excludePatterns` is empty
+- **Fix:** Removed `retainContextWhenHidden` from the panel for better stability in some VS Code forks; tree expand state is kept via the webview state API instead
+- **Fix:** Template refresh re-validates both markers before writing
+- **Fix:** Onboarding prompts appear one at a time rather than stacking
+- **New:** Template versioning - existing installs are offered a one-click refresh of their CLAUDE.md block when the shipped template is newer
+
 ## 0.1.1
 
 - **Fix:** Re-init now cleans up old modules and directories before re-scanning
@@ -30,3 +39,4 @@
 - Configurable file extensions, category mappings, and scan roots via `_config.json`
 - `needsAiSetup` flag for AI to adapt config to any project type
 - Status bar indicator showing module count and staleness
+

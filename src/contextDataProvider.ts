@@ -51,6 +51,12 @@ const DEFAULT_CONFIG: ContextConfig = {
   needsAiSetup: true,
 };
 
+// Reads a text file with any UTF-8 BOM stripped (PowerShell writes one)
+export function readUtf8NoBom(filePath: string): string {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  return content.charCodeAt(0) === 0xFEFF ? content.slice(1) : content;
+}
+
 // Builds a placeholder entry for files that couldn't be parsed
 function errorEntry(filePath: string, reason: string): ModuleFile {
   const category = path.basename(path.dirname(filePath));
@@ -72,7 +78,8 @@ export function parseModuleFile(filePath: string): ModuleFile {
       return errorEntry(filePath, `File too large (${(stat.size / 1024).toFixed(0)} KB — limit is 1 MB)`);
     }
 
-    const content = fs.readFileSync(filePath, 'utf-8');
+    // BOM-stripped read; saving through the extension writes it back without one
+    const content = readUtf8NoBom(filePath);
     const fileName = path.basename(filePath);
     const category = path.basename(path.dirname(filePath));
 
@@ -152,11 +159,14 @@ export function loadAllModules(contextFolder: string): ModuleFile[] {
   return modules;
 }
 
-// Reads .context/_config.json, returns defaults if missing
+// Reads .context/_config.json, returns defaults if missing. Shallow merge:
+// a partial categoryMap or sourceExtensions replaces the default rather than
+// extending it - projects that customise the scan own the full mapping.
 export function loadConfig(contextFolder: string): ContextConfig {
   const configPath = path.join(contextFolder, '_config.json');
   try {
-    const raw = fs.readFileSync(configPath, 'utf-8');
+    // BOM-tolerant - otherwise a valid config silently falls back to defaults
+    const raw = readUtf8NoBom(configPath);
     const parsed = JSON.parse(raw);
     return { ...DEFAULT_CONFIG, ...parsed };
   } catch {
@@ -385,7 +395,7 @@ export function createOverviewFile(contextFolder: string, workspaceRoot: string,
   let projectName = path.basename(workspaceRoot);
   try {
     const pkgPath = path.join(workspaceRoot, 'package.json');
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+    const pkg = JSON.parse(readUtf8NoBom(pkgPath));
     if (pkg.displayName) { projectName = pkg.displayName; }
     else if (pkg.name) { projectName = pkg.name; }
   } catch { /* no package.json — use folder name */ }

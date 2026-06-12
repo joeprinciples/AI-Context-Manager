@@ -19,7 +19,8 @@ export interface ScanResult {
 }
 
 function shouldExclude(name: string, excludePatterns: string[]): boolean {
-  return excludePatterns.some(p => name === p || name.startsWith('.'));
+  // Dotfiles are always excluded, even with an empty exclude list
+  return name.startsWith('.') || excludePatterns.some(p => name === p);
 }
 
 function isSourceFile(fileName: string, extensions: Set<string>): boolean {

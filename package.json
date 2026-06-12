@@ -2,7 +2,7 @@
   "name": "ai-codebase-context",
   "displayName": "AI Context Docs",
   "description": "Maintain a .context/ folder that maps your codebase for AI assistants",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "FirstPrinciples",
   "license": "MIT WITH Commons-Clause",
   "repository": {

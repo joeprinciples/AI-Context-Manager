@@ -5,8 +5,14 @@
   let categories = [];
   let stalenessMap = {};
   let overviewContent = '';
-  let expandedCategories = new Set();
-  let expandedModules = new Set();
+  // UI state survives webview disposal via get/setState
+  const savedState = vscode.getState() || {};
+  let expandedCategories = new Set(savedState.expandedCategories || []);
+  let expandedModules = new Set(savedState.expandedModules || []);
+
+  function persistState() {
+    vscode.setState({ expandedCategories: [...expandedCategories], expandedModules: [...expandedModules] });
+  }
 
   const treeBody = document.getElementById('treeBody');
   const summaryBar = document.getElementById('summaryBar');
@@ -146,6 +152,7 @@
         } else {
           expandedCategories.add(category.name);
         }
+        persistState();
         renderTree();
       });
       fragment.appendChild(catRow);
@@ -209,6 +216,7 @@
           } else {
             expandedModules.add(mod.filePath);
           }
+          persistState();
           renderTree();
         });
 

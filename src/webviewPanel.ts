@@ -26,7 +26,9 @@ export class ContextManagerPanel {
       {
         enableScripts: true,
         localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'media')],
-        retainContextWhenHidden: true,
+        // No retainContextWhenHidden: the panel rebuilds from data when shown
+        // (onDidBecomeVisible -> fullReload). Avoiding it also sidesteps
+        // webview instability in some VS Code forks.
       }
     );
 
